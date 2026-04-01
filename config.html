@@ -1,32 +1,40 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Config Cheatsheet | OpenClaw Memory Architecture</title>
+    <title>Config Cheatsheet | FlexiBot Memory Architecture</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        pre { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        .code-block { background: #1e293b; border-radius: 8px; padding: 16px; font-family: monospace; color: #e2e8f0; overflow-x: auto; }
     </style>
 </head>
 <body class="bg-gray-50">
-    
-    <nav class="bg-white shadow-sm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <a href="index.html" class="text-indigo-600 font-bold">← Back to Overview</a>
+    <nav class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="./" class="flex items-center">
+                    <i class="fas fa-arrow-left mr-2 text-gray-600"></i>
+                    <span class="font-bold text-gray-900">Back to Guide</span>
+                </a>
+                <span class="text-gray-500">Section 16 of 18</span>
+            </div>
         </div>
     </nav>
 
-    <div class="max-w-5xl mx-auto px-4 py-12">
+    <div class="max-w-4xl mx-auto px-4 py-12">
         <h1 class="text-4xl font-bold mb-4">Config Cheatsheet</h1>
-        <p class="text-gray-600 mb-8">Copy-paste ready configuration block</p>
+        <p class="text-gray-600 mb-8">Copy-paste ready configuration for optimal performance</p>
         
         <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <h2 class="text-2xl font-bold mb-6 text-indigo-600">Optimized Configuration</h2>
-            
-            <pre class="text-sm">{
+            <h2 class="text-2xl font-bold mb-4 flex items-center">
+                <i class="fas fa-code text-green-500 mr-3"></i>
+                Recommended Configuration
+            </h2>
+            <div class="code-block">
+{
   "agents": {
     "defaults": {
       "contextTokens": 80000,
@@ -45,77 +53,31 @@
       }
     }
   }
-}</pre>
-            
-            <div class="mt-6 flex gap-4">
-                <button onclick="copyConfig()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-indigo-700 transition">
-                    <i class="fas fa-copy mr-2"></i>Copy to Clipboard
-                </button>
+}
             </div>
         </div>
         
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg mb-8">
-            <h3 class="font-bold text-yellow-800 mb-2">Key Optimizations</h3>
-            <ul class="space-y-2 text-yellow-700">
-                <li>• <strong>contextTokens: 80000</strong> — Covers 85-90% of use cases</li>
-                <li>• <strong>bootstrapMaxChars: 10000</strong> — Reduced from 20000</li>
-                <li>• <strong>memoryFlush enabled</strong> — Key facts survive compaction</li>
-                <li>• <strong>local embeddings</strong> — Free vs paid API</li>
-            </ul>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-lg p-8">
-            <h2 class="text-2xl font-bold mb-6 text-indigo-600">Optional Add-ons</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-lg mb-2 text-green-600">contextTokens: 80000</h3>
+                <p class="text-gray-600 text-sm">Covers 85-90% of use cases. Community result: ~50-77% cost reduction.</p>
+            </div>
             
-            <h3 class="font-semibold mb-2">Heartbeat Cache Warming</h3>
-            <pre class="text-sm mb-4">{
-  "heartbeat": {
-    "enabled": true,
-    "interval": "55m"
-  }
-}</pre>
-            <p class="text-gray-600 text-sm mb-6">Just under 1h cache TTL to prevent expiration</p>
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-lg mb-2 text-blue-600">bootstrapMaxChars: 10000</h3>
+                <p class="text-gray-600 text-sm">Reduced from 20000. Cuts initial context load.</p>
+            </div>
             
-            <h3 class="font-semibold mb-2">QMD Backend (Advanced)</h3>
-            <pre class="text-sm">{
-  "memory": {
-    "backend": "qmd",
-    "qmd": {
-      "includeDefaultMemory": true,
-      "sessions": { "enabled": true, "retentionDays": 30 },
-      "limits": { "maxResults": 6, "timeoutMs": 4000 }
-    }
-  }
-}</pre>
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-lg mb-2 text-purple-600">memoryFlush.enabled: true</h3>
+                <p class="text-gray-600 text-sm">Key facts survive to disk before compaction wipes history.</p>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-lg mb-2 text-orange-600">provider: "local"</h3>
+                <p class="text-gray-600 text-sm">Free embeddings. Use "openai" only for large corpora.</p>
+            </div>
         </div>
     </div>
-
-    <script>
-        function copyConfig() {
-            const config = `{
-  "agents": {
-    "defaults": {
-      "contextTokens": 80000,
-      "bootstrapMaxChars": 10000,
-      "bootstrapTotalMaxChars": 75000,
-      "compaction": {
-        "reserveTokensFloor": 20000,
-        "memoryFlush": {
-          "enabled": true,
-          "softThresholdTokens": 4000
-        }
-      },
-      "memorySearch": {
-        "provider": "local",
-        "sync": { "watch": true }
-      }
-    }
-  }
-}`;
-            navigator.clipboard.writeText(config);
-            alert('Configuration copied to clipboard!');
-        }
-    </script>
-
 </body>
 </html>
