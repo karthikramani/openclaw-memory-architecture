@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Memory Architecture Deep Dive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-text { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .code-block { background: #1e1e1e; border-radius: 8px; padding: 16px; font-family: 'Fira Code', monospace; font-size: 14px; overflow-x: auto; }
+        .nav-link:hover { background: rgba(99, 102, 241, 0.1); }
+        .section-card { transition: all 0.3s ease; }
+        .section-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .metric-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+    
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-memory text-3xl text-indigo-600 mr-3"></i>
+                    <span class="font-bold text-xl">OpenClaw Memory Architecture</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700">Overview</a>
+                    <a href="#sections" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700">Sections</a>
+                    <a href="#commands" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700">Commands</a>
+                    <a href="#config" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-700">Config</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-800 text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="mb-8">
+                <i class="fas fa-brain text-6xl mb-6 opacity-80"></i>
+            </div>
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">Memory Architecture</h1>
+            <h2 class="text-3xl md:text-4xl font-light mb-8 opacity-90">Deep Dive</h2>
+            <p class="text-xl md:text-2xl max-w-3xl mx-auto mb-8 opacity-80">
+                Your API bill is higher than expected. Your agent keeps forgetting things. 
+                Today we're going full architecture mode.
+            </p>
+            <div class="flex justify-center gap-4 flex-wrap">
+                <a href="#overview" class="bg-white text-indigo-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition">
+                    Start Learning →
+                </a>
+                <a href="#sections" class="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-indigo-900 transition">
+                    View All Sections
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Warning Banner -->
+    <section class="bg-red-50 border-l-4 border-red-500 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-start">
+                <i class="fas fa-exclamation-triangle text-red-500 text-2xl mr-4 mt-1"></i>
+                <div>
+                    <h3 class="text-lg font-bold text-red-800">⚠️ Security Warning — Run on a VPS</h3>
+                    <p class="text-red-700 mt-1">Run on a VPS, not your main machine. Isolate your agent. Keep your personal data separate.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Overview Section -->
+    <section id="overview" class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold mb-12 text-center">Architecture Overview</h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="section-card bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-file-alt text-indigo-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">1. Markdown Files</h3>
+                    <p class="text-gray-600">MEMORY.md + daily logs in ~/.agent/workspace/</p>
+                </div>
+                
+                <div class="section-card bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-window-maximize text-purple-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">2. Context Window</h3>
+                    <p class="text-gray-600">What gets sent to the model every turn</p>
+                </div>
+                
+                <div class="section-card bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div class="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-compress-arrows-alt text-pink-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">3. Compaction</h3>
+                    <p class="text-gray-600">Summarizes old history when context fills up</p>
+                </div>
+                
+                <div class="section-card bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-search text-blue-600 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">4. Vector Search</h3>
+                    <p class="text-gray-600">Hybrid BM25 + embeddings for retrieval</p>
+                </div>
+            </div>
+            
+            <div class="mt-12 bg-indigo-50 rounded-xl p-8 text-center">
+                <p class="text-xl font-semibold text-indigo-900">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    Core Philosophy: "If it's not on disk, it doesn't exist after the session ends."
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- The Two Memory Files -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold mb-12 text-center">The Two Memory Files</h2>
+            
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mr-4">
+                            <i class="fas fa-calendar-day text-green-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">Daily Log</h3>
+                            <p class="text-gray-500">memory/YYYY-MM-DD.md</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span>Daily append-only log</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span>Running context, tasks in progress</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span>Read: today + yesterday at session start</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg p-8">
+                    <div class="flex items-center mb-6">
+                        <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mr-4">
+                            <i class="fas fa-archive text-blue-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold">MEMORY.md</h3>
+                            <p class="text-gray-500">Long-term memory</p>
+                        </div>
+                    </div>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-blue-500 mr-3 mt-1"></i>
+                            <span>Curated long-term facts</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-blue-500 mr-3 mt-1"></i>
+                            <span>Decisions, preferences, architecture</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-blue-500 mr-3 mt-1"></i>
+                            <span>Only loaded in main private session</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg">
+                <p class="text-gray-800">
+                    <strong>Key Insight:</strong> The model doesn't persist memory in its weights. Every session starts from scratch. 
+                    The agent reads memory files into the context window — that's how it "remembers". 
+                    Large memory files = more input tokens = more cost.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Context Window Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold mb-12 text-center">Context Window — Your Token Bill</h2>
+            
+            <div class="space-y-4">
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mr-4 font-bold text-indigo-600">1</span>
+                        <span class="font-medium">System prompt</span>
+                    </div>
+                    <span class="text-gray-600">~2K–5K tokens · Fixed</span>
+                </div>
+                
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-4 font-bold text-purple-600">2</span>
+                        <span class="font-medium">Bootstrap files</span>
+                    </div>
+                    <span class="text-gray-600">Up to 20K chars · Semi-fixed</span>
+                </div>
+                
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center mr-4 font-bold text-pink-600">3</span>
+                        <span class="font-medium">Memory files</span>
+                    </div>
+                    <span class="text-gray-600">Varies · Grows over time</span>
+                </div>
+                
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-4 font-bold text-blue-600">4</span>
+                        <span class="font-medium">Skills</span>
+                    </div>
+                    <span class="text-gray-600">Per-skill × count</span>
+                </div>
+                
+                <div class="flex items-center justify-between bg-red-50 p-4 rounded-lg border-2 border-red-200">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-4 font-bold text-red-600">⚠</span>
+                        <span class="font-bold text-red-700">Conversation history</span>
+                    </div>
+                    <span class="font-bold text-red-600">#1 cost driver</span>
+                </div>
+                
+                <div class="flex items-center justify-between bg-red-50 p-4 rounded-lg border-2 border-red-200">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-4 font-bold text-red-600">💀</span>
+                        <span class="font-bold text-red-700">Tool outputs in history</span>
+                    </div>
+                    <span class="font-bold text-red-600">Up to 180K chars — Silent killer</span>
+                </div>
+                
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <span class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-4 font-bold text-green-600">✓</span>
+                        <span class="font-medium">Compaction summary</span>
+                    </div>
+                    <span class="text-gray-600">~1–3K tokens · Replaces old history</span>
+                </div>
+            </div>
+            
+            <div class="mt-8 bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg">
+                <h3 class="font-bold text-red-800 mb-2">⚠️ THE BIG SURPRISE</h3>
+                <p class="text-red-700">
+                    One web scrape returning 180,000 characters gets stored in history. That single tool call 
+                    gets resent with every subsequent message — dragging 50,000+ tokens forward forever. 
+                    A session with 35 messages can easily grow to 2.9MB of transcript. 
+                    <strong>Run /context detail regularly.</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Continue to Full Site -->
+    <section class="py-16 bg-indigo-900 text-white text-center">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold mb-6">Continue to Full Documentation</h2>
+            <p class="text-xl mb-8 opacity-90">
+                This is just the beginning. Access all 18 sections with detailed explanations, 
+                code examples, optimization strategies, and command references.
+            </p>
+            <div class="flex justify-center gap-4 flex-wrap">
+                <a href="sections/" class="bg-white text-indigo-900 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition">
+                    Browse All Sections →
+                </a>
+                <a href="commands.html" class="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-indigo-900 transition">
+                    Commands Cheatsheet
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sections Overview -->
+    <section id="sections" class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold mb-12 text-center">All 18 Sections</h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <a href="sections/" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">01</span>
+                    <h3 class="font-bold text-lg mt-2">Overview</h3>
+                    <p class="text-gray-600 text-sm mt-1">Architecture Overview</p>
+                </a>
+                
+                <a href="sections/security.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-red-600">02</span>
+                    <h3 class="font-bold text-lg mt-2">Security Warning</h3>
+                    <p class="text-gray-600 text-sm mt-1">Run on VPS, not main machine</p>
+                </a>
+                
+                <a href="sections/architecture.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">03</span>
+                    <h3 class="font-bold text-lg mt-2">Architecture</h3>
+                    <p class="text-gray-600 text-sm mt-1">Deep dive into components</p>
+                </a>
+                
+                <a href="sections/memory-files.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">04</span>
+                    <h3 class="font-bold text-lg mt-2">Memory Files</h3>
+                    <p class="text-gray-600 text-sm mt-1">MEMORY.md + daily logs</p>
+                </a>
+                
+                <a href="sections/context.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">05</span>
+                    <h3 class="font-bold text-lg mt-2">Context Window</h3>
+                    <p class="text-gray-600 text-sm mt-1">What gets sent every turn</p>
+                </a>
+                
+                <a href="sections/monitoring.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">06</span>
+                    <h3 class="font-bold text-lg mt-2">Monitoring</h3>
+                    <p class="text-gray-600 text-sm mt-1">Commands to track costs</p>
+                </a>
+                
+                <a href="sections/compaction.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">07</span>
+                    <h3 class="font-bold text-lg mt-2">Compaction</h3>
+                    <p class="text-gray-600 text-sm mt-1">Memory flush & summary</p>
+                </a>
+                
+                <a href="sections/vector-search.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">08</span>
+                    <h3 class="font-bold text-lg mt-2">Vector Search</h3>
+                    <p class="text-gray-600 text-sm mt-1">BM25 + Embeddings</p>
+                </a>
+                
+                <a href="sections/search-optimization.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">09</span>
+                    <h3 class="font-bold text-lg mt-2">Search Optimization</h3>
+                    <p class="text-gray-600 text-sm mt-1">QMD backend setup</p>
+                </a>
+                
+                <a href="sections/mcp.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">10</span>
+                    <h3 class="font-bold text-lg mt-2">MCP & Composio</h3>
+                    <p class="text-gray-600 text-sm mt-1">Tool integration</p>
+                </a>
+                
+                <a href="sections/mcp-vs-custom.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">11</span>
+                    <h3 class="font-bold text-lg mt-2">MCP vs Custom</h3>
+                    <p class="text-gray-600 text-sm mt-1">Why Composio saves money</p>
+                </a>
+                
+                <a href="sections/security-oauth.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">12</span>
+                    <h3 class="font-bold text-lg mt-2">Security & OAuth</h3>
+                    <p class="text-gray-600 text-sm mt-1">Managed auth vs raw</p>
+                </a>
+                
+                <a href="sections/prompt-caching.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">13</span>
+                    <h3 class="font-bold text-lg mt-2">Prompt Caching</h3>
+                    <p class="text-gray-600 text-sm mt-1">90% cost reduction</p>
+                </a>
+                
+                <a href="sections/cost-matrix.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">14</span>
+                    <h3 class="font-bold text-lg mt-2">Cost Impact Matrix</h3>
+                    <p class="text-gray-600 text-sm mt-1">Layer-by-layer breakdown</p>
+                </a>
+                
+                <a href="sections/optimization.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">15</span>
+                    <h3 class="font-bold text-lg mt-2">Optimization</h3>
+                    <p class="text-gray-600 text-sm mt-1">5 key strategies</p>
+                </a>
+                
+                <a href="config.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">16</span>
+                    <h3 class="font-bold text-lg mt-2">Config Cheatsheet</h3>
+                    <p class="text-gray-600 text-sm mt-1">Copy-paste ready</p>
+                </a>
+                
+                <a href="commands.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">17</span>
+                    <h3 class="font-bold text-lg mt-2">Commands</h3>
+                    <p class="text-gray-600 text-sm mt-1">Quick reference</p>
+                </a>
+                
+                <a href="mental-model.html" class="bg-white p-6 rounded-xl shadow hover:shadow-lg transition">
+                    <span class="text-3xl font-bold text-indigo-600">18</span>
+                    <h3 class="font-bold text-lg mt-2">Mental Model</h3>
+                    <p class="text-gray-600 text-sm mt-1">Think like a taxi meter</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <i class="fas fa-memory text-4xl text-indigo-400 mb-4"></i>
+                <h3 class="text-2xl font-bold mb-2">OpenClaw Memory Architecture</h3>
+                <p class="text-gray-400 mb-4">Deep Dive Documentation</p>
+                <p class="text-sm text-gray-500">
+                    Deployed on FlexiPages · Generated by FlexiBot
+                </p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
